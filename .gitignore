@@ -20,8 +20,16 @@ coverage/
 .mock_*
 playwright-report/
 test-results/
+blob-report/
 
+# Local Database Files (safeguard)
+mongod.lock
+WiredTiger*
+diagnostic.data/
+journal/
+*.wt
 
-# OS Metadata
+# IDE and OS Metadata
+.vscode/
 .DS_Store
 Thumbs.db

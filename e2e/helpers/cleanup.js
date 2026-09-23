@@ -62,7 +62,9 @@ async function cleanupE2EData() {
   if (bookingIds.length > 0 || stadiumIds.length > 0) {
     const slRes = await SlotLock.deleteMany({
       $or: [
+        { booking: { $in: bookingIds } },
         { bookingId: { $in: bookingIds } },
+        { stadium: { $in: stadiumIds } },
         { stadiumId: { $in: stadiumIds } }
       ]
     });
@@ -73,7 +75,9 @@ async function cleanupE2EData() {
   if (bookingIds.length > 0 || userIds.length > 0) {
     const pRes = await Payment.deleteMany({
       $or: [
+        { booking: { $in: bookingIds } },
         { bookingId: { $in: bookingIds } },
+        { user: { $in: userIds } },
         { userId: { $in: userIds } }
       ]
     });
