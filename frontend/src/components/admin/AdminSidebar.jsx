@@ -10,6 +10,7 @@ import {
   Star,
   Clock,
   Bell,
+  MessageSquare,
   ShieldCheck,
   FileText,
   BarChart3,
@@ -56,6 +57,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
       items: [
         { label: 'Availability', to: '/admin/availability', icon: Clock },
         { label: 'Notifications', to: '/admin/notifications', icon: Bell },
+        { label: 'Contact Messages', to: '/admin/contact-messages', icon: MessageSquare },
         { label: 'Safety & Rules', to: '/admin/safety-rules', icon: ShieldCheck },
         { label: 'Terms & Conditions', to: '/admin/terms', icon: FileText }
       ]

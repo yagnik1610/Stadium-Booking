@@ -12,6 +12,7 @@ export default function Contact() {
     email: '',
     mobile: '',
     subject: '',
+    bookingId: '',
     message: ''
   });
 
@@ -164,7 +165,7 @@ export default function Contact() {
                     size="sm"
                     onClick={() => {
                       setSubmitted(false);
-                      setFormData({ name: '', email: '', mobile: '', subject: '', message: '' });
+                      setFormData({ name: '', email: '', mobile: '', subject: '', bookingId: '', message: '' });
                     }}
                   >
                     Send Another Message
@@ -249,6 +250,23 @@ export default function Contact() {
                       className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#172554] placeholder-slate-400 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#334155] uppercase tracking-wider mb-1">
+                    Booking ID
+                  </label>
+                  <input
+                    type="text"
+                    name="bookingId"
+                    value={formData.bookingId}
+                    onChange={handleChange}
+                    placeholder="e.g. STB-20260923-A1B2C3"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#172554] placeholder-slate-400 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Optional — provide your Booking ID for booking-related support.
+                  </p>
                 </div>
 
                 <div>

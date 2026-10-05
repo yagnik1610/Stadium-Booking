@@ -164,6 +164,8 @@ export const adminAPI = {
   
   // Operations & System
   getActivityLogs: (params) => api.get('/admin/activity', { params }),
+  getContactMessages: (params) => api.get('/admin/contact-messages', { params }),
+  updateContactMessageStatus: (id, status) => api.put(`/admin/contact-messages/${id}/status`, { status }),
   getSettings: () => api.get('/admin/settings'),
   getSystemSettings: () => api.get('/admin/settings'),
   updateSettings: (data) => api.put('/admin/settings', data),

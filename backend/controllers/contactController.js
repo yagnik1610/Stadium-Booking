@@ -6,7 +6,14 @@ const { sendAdminContactInquiryEmail } = require('../utils/emailService');
 // @access  Public
 const submitContactMessage = async (req, res, next) => {
   try {
-    const { name, email, mobile, subject, message } = req.body;
+    const {
+      name,
+      email,
+      mobile,
+      subject,
+      bookingId,
+      message
+    } = req.body;
 
     if (!name || !email || !message) {
       return res.status(400).json({
@@ -28,6 +35,7 @@ const submitContactMessage = async (req, res, next) => {
       email: email.trim().toLowerCase(),
       mobile: mobile ? mobile.trim() : undefined,
       subject: subject ? subject.trim() : 'General Inquiry',
+      bookingId: bookingId ? bookingId.trim() : '',
       message: message.trim()
     });
 

@@ -1,14 +1,11 @@
 const mongoose = require('mongoose');
 
-/**
- * Connects to MongoDB database using Mongoose and validates critical indexes
- */
+
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
 
-    // Verify and ensure critical concurrency and performance indexes
     try {
       const SlotLock = require('../models/SlotLock');
       await SlotLock.verifyAndEnsureIndexes();

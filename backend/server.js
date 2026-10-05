@@ -28,13 +28,12 @@ dotenv.config();
 const validateEnv = require('./config/validateEnv');
 validateEnv();
 
-// Initialize MongoDB connection
-connectDB();
-
+// Initialize Express App
 const app = express();
 
 // Security Middlewares
 app.use(helmet());
+
 
 // CORS Configuration
 const allowedOrigins = [
@@ -43,18 +42,24 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000'
 ];
+
 if (process.env.CLIENT_URL && !allowedOrigins.includes(process.env.CLIENT_URL)) {
   allowedOrigins.push(process.env.CLIENT_URL);
 }
 
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps, curl, server-to-server)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Allow requests without an Origin header
+    // (curl, server-to-server requests, etc.)
+    if (!origin) {
       return callback(null, true);
     }
-    return callback(null, true); // Permissive in development to prevent CORS blockage
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));
@@ -101,7 +106,7 @@ const maintenanceMiddleware = async (req, res, next) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const user = await User.findById(decoded.id).select('role').lean();
             if (user && user.role === 'admin') isAdmin = true;
-          } catch (_) {}
+          } catch (_) { }
         }
         if (!isAdmin) {
           return res.status(503).json({
@@ -110,7 +115,7 @@ const maintenanceMiddleware = async (req, res, next) => {
           });
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
   next();
 };
@@ -181,16 +186,7 @@ app.use(errorHandler);
 // Port configuration
 const PORT = process.env.PORT || 5000;
 
-// Start HTTP Server
-const { startExpiryJob, stopExpiryJob, cleanupStalePendingBookings } = require('./utils/paymentExpiryJob');
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Stadium Booking Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`🔗 Test API: http://localhost:${PORT}/api/test`);
-
-  // Reconcile stale pending bookings on boot and schedule periodic sweeper
-  cleanupStalePendingBookings().catch(err => console.error('Initial stale cleanup error:', err.message));
-  startExpiryJob(5);
-});
+let server;
 
 // Graceful Shutdown Handlers (Step 46)
 const gracefulShutdown = async (signal) => {
@@ -205,19 +201,27 @@ const gracefulShutdown = async (signal) => {
   }
 
   // 2. Stop accepting new HTTP requests
-  server.close(async () => {
-    console.log('✅ HTTP server closed. No longer accepting requests.');
+  if (server) {
+    server.close(async () => {
+      console.log('✅ HTTP server closed. No longer accepting requests.');
 
-    // 3. Close MongoDB connection cleanly
+      // 3. Close MongoDB connection cleanly
+      try {
+        await mongoose.connection.close(false);
+        console.log('✅ MongoDB connection closed cleanly.');
+        process.exit(0);
+      } catch (err) {
+        console.error('❌ Error during MongoDB disconnection:', err.message);
+        process.exit(1);
+      }
+    });
+  } else {
     try {
       await mongoose.connection.close(false);
       console.log('✅ MongoDB connection closed cleanly.');
-      process.exit(0);
-    } catch (err) {
-      console.error('❌ Error during MongoDB disconnection:', err.message);
-      process.exit(1);
-    }
-  });
+    } catch (_) { }
+    process.exit(0);
+  }
 
   // Fail-safe exit timeout (10 seconds)
   setTimeout(() => {
@@ -229,5 +233,35 @@ const gracefulShutdown = async (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-module.exports = { app, server };
+// Start HTTP Server after ensuring MongoDB is connected
+const { startExpiryJob, stopExpiryJob, cleanupStalePendingBookings } = require('./utils/paymentExpiryJob');
+
+async function startServer() {
+  try {
+    await connectDB();
+
+    server = app.listen(PORT, () => {
+      console.log(`🚀 Stadium Booking Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+      console.log(`🔗 Test API: http://localhost:${PORT}/api/test`);
+
+      // Reconcile stale pending bookings on boot and schedule periodic sweeper
+      cleanupStalePendingBookings().catch(err => console.error('Initial stale cleanup error:', err.message));
+      startExpiryJob(5);
+    });
+
+    return server;
+  } catch (error) {
+    console.error('❌ Server startup aborted:', error.message);
+    process.exit(1);
+  }
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  startServer().catch(err => {
+    console.error('❌ Server startup error:', err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, server, startServer };
 

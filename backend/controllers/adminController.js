@@ -8,6 +8,7 @@ const Notification = require('../models/Notification');
 const Setting = require('../models/Setting');
 const AuditLog = require('../models/AuditLog');
 const EmailLog = require('../models/EmailLog');
+const ContactMessage = require('../models/ContactMessage');
 const { logAdminAction } = require('../utils/auditLogger');
 const mongoose = require('mongoose');
 
@@ -728,6 +729,116 @@ const getEmailLogs = async (req, res, next) => {
   }
 };
 
+// ==========================================
+// CONTACT MESSAGES MANAGEMENT
+// ==========================================
+
+// Helper to escape regex special characters
+const escapeRegex = (text) => {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};
+
+// @desc    Get all contact messages
+// @route   GET /api/admin/contact-messages
+// @access  Private/Admin
+const getContactMessages = async (req, res, next) => {
+  try {
+    const { search, status, page = 1, limit = 10 } = req.query;
+
+    const parsedPage = parseInt(page, 10);
+    const parsedLimit = parseInt(limit, 10);
+
+    if (isNaN(parsedPage) || parsedPage <= 0) return res.status(400).json({ success: false, message: 'Invalid page' });
+    if (isNaN(parsedLimit) || parsedLimit <= 0) return res.status(400).json({ success: false, message: 'Invalid limit' });
+    if (parsedLimit > 50) return res.status(400).json({ success: false, message: 'Limit cannot exceed 50' });
+
+    let query = {};
+
+    if (status && ['unread', 'read', 'archived'].includes(status)) {
+      query.status = status;
+    }
+
+    if (search && search.trim()) {
+      const sanitized = escapeRegex(search.trim());
+      const searchRegex = new RegExp(sanitized, 'i');
+      query.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { subject: searchRegex },
+        { bookingId: searchRegex }
+      ];
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const [messages, total] = await Promise.all([
+      ContactMessage.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parsedLimit)
+        .lean(),
+      ContactMessage.countDocuments(query)
+    ]);
+
+    const totalPages = Math.ceil(total / parsedLimit);
+
+    res.status(200).json({
+      success: true,
+      count: messages.length,
+      total,
+      pagination: {
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages,
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1
+      },
+      messages
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update contact message status
+// @route   PUT /api/admin/contact-messages/:id/status
+// @access  Private/Admin
+const updateContactMessageStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid Contact Message ID' });
+    }
+
+    if (!status || !['unread', 'read', 'archived'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status value. Allowed values are 'unread', 'read', or 'archived'"
+      });
+    }
+
+    const contactMessage = await ContactMessage.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true, runValidators: true }
+    );
+
+    if (!contactMessage) {
+      return res.status(404).json({ success: false, message: 'Contact message not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Contact message status updated',
+      contactMessage
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getUsers,
   getUserById,
@@ -741,6 +852,8 @@ module.exports = {
   getSystemSettings,
   updateSystemSettings,
   broadcastNotification,
-  getEmailLogs
+  getEmailLogs,
+  getContactMessages,
+  updateContactMessageStatus
 };
 

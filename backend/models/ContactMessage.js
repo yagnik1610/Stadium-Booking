@@ -24,6 +24,11 @@ const contactMessageSchema = new mongoose.Schema({
     trim: true,
     default: 'General Inquiry'
   },
+  bookingId: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   message: {
     type: String,
     required: [true, 'Please provide your message'],

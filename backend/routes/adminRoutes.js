@@ -13,7 +13,9 @@ const {
   getSystemSettings,
   updateSystemSettings,
   broadcastNotification,
-  getEmailLogs
+  getEmailLogs,
+  getContactMessages,
+  updateContactMessageStatus
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -93,6 +95,14 @@ router.route('/settings')
 // @route   POST /api/admin/broadcast-notification
 router.post('/notifications/broadcast', broadcastNotification);
 router.post('/broadcast-notification', broadcastNotification);
+
+// ==========================================
+// CONTACT MESSAGES
+// ==========================================
+// @route   GET /api/admin/contact-messages
+// @route   PUT /api/admin/contact-messages/:id/status
+router.get('/contact-messages', getContactMessages);
+router.put('/contact-messages/:id/status', updateContactMessageStatus);
 
 module.exports = router;
 

@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide a password'],
     minlength: 6,
-    select: false, // Prevents password from being returned in queries by default
+    select: false,
   },
   mobile: {
     type: String,
@@ -63,11 +63,11 @@ const userSchema = new mongoose.Schema({
     default: true,
   },
 }, {
-  timestamps: true // Automatically adds createdAt and updatedAt fields
+  timestamps: true
 });
 
 // Pre-save middleware to hash the password before saving to the database
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   // Only hash the password if it has been modified (or is new)
   if (!this.isModified('password')) {
     next();
@@ -80,7 +80,7 @@ userSchema.pre('save', async function(next) {
 });
 
 // Method to compare entered password with the hashed password in the database
-userSchema.methods.matchPassword = async function(enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
